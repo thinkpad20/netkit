@@ -2,4 +2,4 @@ server.c
 examples/connector
 examples/nk_telnet
 examples/hello_world_server
-examples/mini_http.c
+examples/mini_http
