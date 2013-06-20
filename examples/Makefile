@@ -1,13 +1,10 @@
 CC=clang
 LIB=../bin/netkit.o
 
-all: connector hws telnet mini_http
+all: connector telnet mini_http one_liner
 
 connector: connector.c
 	$(CC) -o connector connector.c $(LIB)
-
-hws: hello_world_server.c
-	$(CC) -o hello_world_server hello_world_server.c $(LIB)
 
 telnet: netkit_telnet.c
 	$(CC) -o nk_telnet netkit_telnet.c $(LIB)
@@ -15,8 +12,11 @@ telnet: netkit_telnet.c
 mini_http: mini_http.c
 	$(CC) -o mini_http mini_http.c $(LIB)
 
+one_liner: one_liner_helloworld.c
+	$(CC) -o one_liner one_liner_helloworld.c $(LIB)
+
 clean:
 	rm connector
-	rm hello_world_server
 	rm nk_telnet
 	rm mini_http
+	rm one_liner

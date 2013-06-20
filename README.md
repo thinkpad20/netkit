@@ -20,16 +20,13 @@ And if you want to accept a client on that port, you just call:
 connection_t *incoming_con = nk_accept(con);
 ```
 
-So you can write a `hello, world!` server that looks like this:
+So you can write a `hello, world!` server in one line:
 
 ```c
 #include "../include/netkit.h"
-/* Hello world in 4 lines with netkit! */
+
 int main(int argc, char const *argv[]) {
-	connection_t *my_con = nk_listen_on4("7890"), *their_con = nk_accept(my_con);
-	nk_send(their_con, "hello, world!\r\n");
-	nk_close(their_con);
-	nk_close(my_con);
+	nk_send(nk_accept(nk_listen_on("7890")), "hello, world!\r\n");
 }
 ```
 
@@ -61,7 +58,7 @@ Run `make` from the main directory. This should put `netkit.o` in the `/bin` dir
 
 ## Examples:
 
-* `hello_world_server.c`: Does what you expect it to do.
-* `mini_http.c`: A slightly more involved version of the hello world server, sends it in (somewhat) properly formed HTTP and HTML format. Also prints out the request it receives from a browser (or otherwise).
+* `one_liner_helloworld.c`: Does what you expect it to do.
+* `mini_http.c`: A slightly more fleshed-out version of the hello world server, sends it in (somewhat) properly formed HTTP and HTML format, and does a proper teardown of the connection (calling `nk_close()`). Also prints out the request it receives from a browser (or otherwise).
 * `connector.c`: Connects to a specified server and port, sends a GET request and returns a response.
 * `netkit_telnet.c`: A pretty crummy version of telnet, but barely functional. Uses threads.
