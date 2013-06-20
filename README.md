@@ -59,8 +59,7 @@ Note that I've only run this on Mac OS X so far, but it should work on any unix 
 
 Run `make` from the main directory. This should put `netkit.o` in the `/bin` directory. To use it, include `/include/netkit.h` and link with `/bin/netkit.o`. To build the examples, run `make` in the examples directory.
 
-Examples:
-=========
+## Examples:
 
 * `hello_world_server.c`: Does what you expect it to do.
 * `mini_http.c`: A slightly more involved version of the hello world server, sends it in (somewhat) properly formed HTTP and HTML format. Also prints out the request it receives from a browser (or otherwise).
