@@ -1,3 +1,6 @@
+#ifndef _NETKIT_H_
+#define _NETKIT_H_
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -49,3 +52,5 @@ size_t nk_recv_with_delim(connection_t *con,
 						  const char *delim);
 void nk_close(connection_t *con);
 void nk_print_connection(connection_t *con);
+
+#endif /* _NETKIT_H_ */
