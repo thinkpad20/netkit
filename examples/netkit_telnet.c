@@ -5,19 +5,19 @@ const char *http_msg = "GET / HTTP/1.1\r\n\r\n";
 const size_t resp_len = 50000;
 const size_t MAX_LINE = 50000;
 
-void telnet_send(int socketfd, const char *msg) {
+void telnet_send(connection_t *con, const char *msg) {
 	char *buf = (char *)malloc(strlen(msg) + 2);
 	sprintf(buf, "%s\r\n", msg);
-	nk_send(socketfd, buf);
+	nk_send(con, buf);
 	free(buf);
 }
 
 struct loop_args {
-	int socketfd;
+	connection_t *con;
 };
 
 void *telnet_write_loop(void *args) {
-	int serv_sock = ((struct loop_args *)args)->socketfd;
+	connection_t *con = ((struct loop_args *)args)->con;
 	char *out_buf = (char *)calloc(1, MAX_LINE), c;
 	size_t i;
 	while (1) {
@@ -28,7 +28,7 @@ void *telnet_write_loop(void *args) {
 		}
 		out_buf[i] = '\0';
 		if (!strcmp(out_buf, "exit")) break;
-		telnet_send(serv_sock, out_buf);
+		telnet_send(con, out_buf);
 	}
 	printf("Connection closed by client\n");
 	free(out_buf);
@@ -36,10 +36,10 @@ void *telnet_write_loop(void *args) {
 }
 
 void *telnet_read_loop(void *args) {
-	int serv_sock = ((struct loop_args *)args)->socketfd;
+	connection_t *con = ((struct loop_args *)args)->con;
 	char *in_buf = (char *)calloc(1, resp_len);
 	while (1) {
-		size_t len = nk_recv_with_delim(serv_sock, in_buf, resp_len, "\r\n");
+		size_t len = nk_recv_with_delim(con, in_buf, resp_len, "\r\n");
 		printf("%.*s\n", (int)len, in_buf);
 		// printf("received %lu bytes\n", len);
 		if (len == 0) break;
@@ -60,20 +60,23 @@ int main(int argc, char const *argv[]) {
 
 	printf("attempting to connect to %s, port %s\n", argv[1], argv[2]);
 
-	int serv_sock = nk_connect_to(argv[1], argv[2]);
+	connection_t *con = nk_connect_to(NULL, argv[1], argv[2]);
 
-	if (serv_sock > 0) printf("connected, file descriptor %d\n", serv_sock);
-	else return 1;
+	if (con) 
+		printf("connected, file descriptor %d, ip %s\n", con->fd, con->ip);
+	else 
+		return 1;
 
 	struct loop_args args;
-	args.socketfd = serv_sock;
+	args.con = con;
 	
 	pthread_create(&write_thread, NULL, telnet_write_loop, &args);
 	pthread_create(&read_thread, NULL, telnet_read_loop, &args);
 
 	pthread_join(read_thread, NULL);
 	pthread_join(write_thread, NULL);
-	
+
+	nk_close(con);
 	printf("Thanks for using telnet today.\n");
 	return 0;
 }
