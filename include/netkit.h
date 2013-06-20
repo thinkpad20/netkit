@@ -23,6 +23,7 @@ typedef struct connection_s {
 	int type, options;
 	char *hostname;
 	char *ip;
+	void *ip_int;
 	char *port;
 } connection_t;
 

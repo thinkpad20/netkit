@@ -247,16 +247,20 @@ _nk_connect_to(const char *hostname, const char *port, int family) {
 
 	/* put in the IP address */
 	if (AF_INET == p->ai_family) {
-		inet_ntop(AF_INET, 
+		con->ip_int = malloc(4); /* 32 bits (4*8) in IPv4 addr */
+		memcpy(con->ip_int, 
 				 &((struct sockaddr_in *)p->ai_addr)->sin_addr.s_addr, 
-				 con->ip, 
-				 INET_ADDRSTRLEN);
+				 4);
 	} else {
-		inet_ntop(AF_INET6, 
+		con->ip_int = malloc(16); /* 128 bits (16*8) in IPv6 addr */
+		memcpy(con->ip_int,
 				 &((struct sockaddr_in6 *)p->ai_addr)->sin6_addr, 
-				 con->ip, 
-				 INET6_ADDRSTRLEN);
+				 16);
 	}
+	inet_ntop(p->ai_family, 
+				 con->ip_int, 
+				 con->ip, 
+				 addr_len(con));
 	freeaddrinfo(res);
 	return con;
 }
@@ -380,24 +384,24 @@ nk_accept(connection_t *server_con) {
 
 	/* put in the IP address */
 	if (get_option(server_con, IPV6_OPT)) {
-		inet_ntop(AF_INET6, 
-				 &saddr6.sin6_addr, 
-				 in_con->ip, 
-				 INET6_ADDRSTRLEN);
+		in_con->ip_int = malloc(16); /* 128 bits (16*8) in IPv6 addr */
+		memcpy(in_con->ip_int, &saddr6.sin6_addr, 16);
 	} else {
-		inet_ntop(AF_INET, 
-				 &saddr.sin_addr.s_addr,
-				 in_con->ip, 
-				 INET_ADDRSTRLEN);
+		in_con->ip_int = malloc(4); /* 32 bits (4*8) in IPv4 addr */
+		memcpy(in_con->ip_int, &saddr.sin_addr.s_addr, 4);
 	}
-
+	/* put in the IP address string */
+	inet_ntop(get_option(server_con, IPV6_OPT) ? AF_INET6 : AF_INET,
+				 in_con->ip_int, 
+				 in_con->ip, 
+				 addr_len(in_con));
 	return in_con;
 }
 
 void 
 nk_close(connection_t *con) {
 	if (get_option(con, FREE_HOSTNAME_OPT)) { free(con->hostname); }
-	if (get_option(con, FREE_IP_OPT)) {	free(con->ip);	}
+	if (get_option(con, FREE_IP_OPT)) {	free(con->ip);	free(con->ip_int); }
 	if (get_option(con, FREE_PORT_OPT)) { free(con->port); }
 	close(con->fd);
 	free(con);
@@ -424,7 +428,9 @@ nk_print_connection(connection_t *con) {
 	} else {
 		fprintf(stderr, "\tVersion: IPV4\n");
 	}
-	fprintf(stderr, "\tIP address: %s\n", con->ip);
+	fprintf(stderr, "\tIP address: %s", con->ip);
+	if (get_option(con, IPV6_OPT)) printf("\n");
+	else printf(" (%X)\n", *((unsigned *)con->ip_int));
 	fprintf(stderr, "\tHostname: %s\n", con->hostname);
 	fprintf(stderr, "\tPort: %s\n", con->port);
 }
