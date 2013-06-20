@@ -60,7 +60,7 @@ int main(int argc, char const *argv[]) {
 
 	printf("attempting to connect to %s, port %s\n", argv[1], argv[2]);
 
-	connection_t *con = nk_connect_to(NULL, argv[1], argv[2]);
+	connection_t *con = nk_connect_to(argv[1], argv[2]);
 
 	if (con) 
 		printf("connected, file descriptor %d, ip %s\n", con->fd, con->ip);
