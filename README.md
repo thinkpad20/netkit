@@ -2,7 +2,7 @@
 
 Have you ever spent way too much time poring over man pages, network guides and textbooks trying to figure out the C socket library? Wondering what in the heck is the difference between a `struct sockaddr`, a `struct addrinfo`, a `struct in_addr` and a `struct hostent`? Why there's `bind` and `connect` and `listen` and `accept` and `socket`? 
 
-Meanwhile, your friend using python just gets to call `socket` or whatever, and be done with it! This library is meant to help with that. Too many times, I've found myself wanting to build something with sockets -- even something exceedingly simple -- and found myself having to go back to Beej's Network Guide (thanks Beej!) and figure this stuff out all over again. No longer! Now if you want to connect to `www.google.com`, you can just say:
+Meanwhile, your friend using python just gets to call `socket` or whatever, and be done with it! This library is meant to help with that. Too many times, I've found myself wanting to build something with sockets -- even something exceedingly simple -- and found myself having to go back to Beej's Network Guide (Beej has saved my ass many a time!) and figure this stuff out all over again. No longer! Now if you want to connect to `www.google.com`, you can just say:
 
 ```c
 connection_t *con = nk_connect_to("www.google.com", "80");
@@ -51,7 +51,7 @@ Connection:
 	Port: 80
 ```
 
-There are also versions of `send` and `recv`, including a version of `recv` which breaks on a user-specified delimiter (such as \r\n). Likely to come later are simple functions for parsing/constructing HTTP requests/responses, grabbing the content of web pages, and more. There may be asyncronous functionality (using `libuv`, for example) in the future as well.
+There are also versions of `send` and `recv`, including a version of `recv` which breaks on a user-specified delimiter (such as `\r\n`). Likely to come later are simple functions for parsing/constructing HTTP requests/responses, grabbing the content of web pages, and more. There may be asyncronous functionality (using `libuv`, for example) in the future as well.
 
 ## Installation and Usage:
 
