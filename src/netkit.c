@@ -432,9 +432,7 @@ nk_print_connection(connection_t *con) {
 	} else {
 		fprintf(stderr, "\tVersion: IPV4\n");
 	}
-	fprintf(stderr, "\tIP address: %s", con->ip);
-	if (get_option(con, IPV6_OPT)) printf("\n");
-	else printf(" (%X)\n", *((unsigned *)con->ip_int));
+	fprintf(stderr, "\tIP address: %s\n", con->ip);
 	fprintf(stderr, "\tHostname: %s\n", con->hostname);
 	fprintf(stderr, "\tPort: %s\n", con->port);
 }
