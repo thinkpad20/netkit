@@ -163,16 +163,20 @@ _nk_listen_on(const char *port, int family) {
 
 	/* put in the IP address */
 	if (AF_INET == p->ai_family) {
-		inet_ntop(AF_INET, 
+		con->ip_int = malloc(4); /* 32 bits (4*8) in IPv4 addr */
+		memcpy(con->ip_int, 
 				 &((struct sockaddr_in *)p->ai_addr)->sin_addr.s_addr, 
-				 con->ip, 
-				 INET_ADDRSTRLEN);
+				 4);
 	} else {
-		inet_ntop(AF_INET6, 
+		con->ip_int = malloc(16); /* 128 bits (16*8) in IPv6 addr */
+		memcpy(con->ip_int,
 				 &((struct sockaddr_in6 *)p->ai_addr)->sin6_addr, 
-				 con->ip, 
-				 INET6_ADDRSTRLEN);
+				 16);
 	}
+	inet_ntop(p->ai_family, 
+				 con->ip_int, 
+				 con->ip, 
+				 addr_len(con));
 
 	freeaddrinfo(res);
 	return con;
