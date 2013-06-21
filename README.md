@@ -48,7 +48,7 @@ Connection:
 	Port: 80
 ```
 
-There are also versions of `send` and `recv`, including a version of `recv` which breaks on a user-specified delimiter (such as `\r\n`). Likely to come later are simple functions for parsing/constructing HTTP requests/responses, grabbing the content of web pages, and more. There may be asyncronous functionality (using `libuv`, for example) in the future as well.
+There are also versions of `send` and `recv`, including a version of `recv` which breaks on a user-specified delimiter (such as `\r\n`). Likely to come later are ability to choose TCP or UDP, simple functions for parsing/constructing HTTP requests/responses, grabbing the content of web pages, and more. There may be asyncronous functionality (using `libuv`, for example) in the future as well.
 
 ## Installation and Usage:
 

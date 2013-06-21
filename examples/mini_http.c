@@ -1,6 +1,5 @@
 #include "../include/netkit.h"
 
-const size_t MAX_BUF = 50000;
 const char *response_fmt = "HTTP/1.1 200 OK\r\n"
 					   "Server: Netkit Mini_HTTP\r\n"
 					   "Content-length: %lu\r\n"
@@ -29,7 +28,10 @@ int main(int argc, char const *argv[]) {
 
 	printf("Client's message:\n");
 	for (i=0; i<10; ++i) {
-		int len = nk_recv_with_delim(their_con, buf, MAX_BUF, "\r\n");
+		int len = nk_recv_crlf(their_con, buf, MAX_BUF);
+		if (i == 0) {
+			http_header_t *hdr = nk_read_header(buf, len);
+		}
 		printf("%.*s", len, buf);
 		if (!strncmp(buf, "\r\n", 2))
 			break;

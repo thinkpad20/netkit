@@ -284,8 +284,9 @@ nk_connect_to6(const char *hostname, const char *port) {
 	return _nk_connect_to(hostname, port, AF_INET6);
 }
 
-size_t nk_send(connection_t *con, const char *msg) {
-	size_t len = strlen(msg), bytes_sent = 0;
+size_t 
+nk_send_len(connection_t *con, const char *msg, size_t len) {
+	size_t bytes_sent = 0;
 	int res;
 	while (bytes_sent < len) {
 		res = send(con->fd, msg + bytes_sent, len - bytes_sent, 0);
@@ -301,6 +302,11 @@ size_t nk_send(connection_t *con, const char *msg) {
 		}
 	}
 	return bytes_sent;
+}
+
+size_t
+nk_send(connection_t *con, const char *msg) {
+	return nk_send_len(con, msg, strlen(msg));
 }
 
 size_t 
@@ -357,6 +363,11 @@ nk_recv_with_delim(connection_t *con,
 	return bytes_recvd;
 }
 
+size_t
+nk_recv_crlf(connection_t *con, char *buf, size_t len) {
+	return nk_recv_with_delim(con, buf, len, "\r\n");
+}
+
 connection_t *
 nk_accept(connection_t *server_con) {
 	struct sockaddr_in saddr;
@@ -365,7 +376,10 @@ nk_accept(connection_t *server_con) {
 	socklen_t slen6 = sizeof(struct sockaddr_in6);
 	connection_t *in_con;
 	int fd;
-	assert(server_con && "Must supply a server-side connection");
+	if (!server_con) {
+		fprintf(stderr, "Must supply a server-side connection\n");
+		return NULL;
+	}
 
 	/* depending on if we're ipv6 or v4, we'll accept one or the other */
 	if (get_option(server_con, IPV6_OPT)) {
@@ -375,6 +389,7 @@ nk_accept(connection_t *server_con) {
 	}
 
 	in_con = (connection_t *)malloc(sizeof(connection_t));
+	if (!in_con) return NULL;
 	make_default_con(in_con, INCOMING_TYPE);
 
 	/* set the incoming connection's ip version to match the server's */
@@ -385,13 +400,16 @@ nk_accept(connection_t *server_con) {
 
 	/* store the IP address string */
 	in_con->ip = (char *)malloc(addr_len(in_con));
+	assert(in_con->ip && "Error in memory allocation");
 
 	/* put in the IP address */
 	if (get_option(server_con, IPV6_OPT)) {
 		in_con->ip_int = malloc(16); /* 128 bits (16*8) in IPv6 addr */
+		assert(in_con->ip_int && "Error in memory allocation");
 		memcpy(in_con->ip_int, &saddr6.sin6_addr, 16);
 	} else {
 		in_con->ip_int = malloc(4); /* 32 bits (4*8) in IPv4 addr */
+		assert(in_con->ip_int && "Error in memory allocation");
 		memcpy(in_con->ip_int, &saddr.sin_addr.s_addr, 4);
 	}
 	/* put in the IP address string */

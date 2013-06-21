@@ -9,6 +9,9 @@
 #include <netdb.h>
 #include <sys/types.h>
 #include <string.h>
+#include <assert.h>
+
+#define MAX_BUF 50000
 
 /*
 connection_t->options:
@@ -43,9 +46,13 @@ connection_t *nk_listen_on6(const char *port);
 connection_t *nk_connect_to6(const char *hostname, 
 							 const char *port);
 
+/* accepts a connection, returns a new connection_t */
 connection_t *nk_accept(connection_t *server_con);
+
 size_t nk_send(connection_t *con, const char *msg);
+size_t nk_send_len(connection_t *con, const char *msg, size_t len);
 size_t nk_recv(connection_t *con, char *buf, size_t len);
+size_t nk_recv_crlf(connection_t *con, char *buf, size_t len);
 size_t nk_recv_with_delim(connection_t *con, 
 						  char *buf, 
 						  size_t len, 

@@ -1,5 +1,5 @@
 CC=clang
-LIB=../bin/netkit.o
+LIB=../bin/netkit.o ../bin/netkit_http.o ../bin/list.o
 
 all: connector telnet mini_http one_liner
 

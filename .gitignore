@@ -1,5 +1,8 @@
 server.c
+bin/*
 examples/connector
 examples/nk_telnet
 examples/one_liner
 examples/mini_http
+experiment
+examples/mini_http.c
