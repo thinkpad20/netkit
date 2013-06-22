@@ -1,7 +1,7 @@
 #include "../include/netkit.h"
 
 int main(int argc, char const *argv[]) {
-	char *buf = (char *)malloc(50000);
+	char *buf = (char *)malloc(MAX_BUF);
 	const char *hostname = "www.google.com";
 	connection_t *con;
 	if (argc == 2) { hostname = argv[1]; }
@@ -17,7 +17,7 @@ int main(int argc, char const *argv[]) {
 	nk_send(con, "GET / HTTP/1.0\r\n\r\n"); /* 1.0 so they close after response */
 
 	while (1) {
-		size_t res = nk_recv_with_delim(con, buf, 50000, "\r\n");
+		size_t res = nk_recv_crlf(con, buf, MAX_BUF);
 		if (res == 0) break;
 		printf("%.*s\n", ((int)res), buf);
 	}

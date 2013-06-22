@@ -39,7 +39,7 @@ void *telnet_read_loop(void *args) {
 	connection_t *con = ((struct loop_args *)args)->con;
 	char *in_buf = (char *)calloc(1, resp_len);
 	while (1) {
-		size_t len = nk_recv_with_delim(con, in_buf, resp_len, "\r\n");
+		size_t len = nk_recv_crlf(con, in_buf, resp_len);
 		printf("%.*s\n", (int)len, in_buf);
 		// printf("received %lu bytes\n", len);
 		if (len == 0) break;
