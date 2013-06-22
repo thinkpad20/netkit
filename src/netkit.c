@@ -1,5 +1,8 @@
 #include "../include/netkit.h"
+#include "../include/list.h"
 #include <assert.h>
+
+#define __VERBOSE__
 
 typedef enum connection_options {
 	FREE_HOSTNAME_OPT = 1,
@@ -31,7 +34,7 @@ connection_t->options bits:
 static void set_type(connection_t *con, contype type);
 static bool_t get_option(connection_t *con, conopt option);
 static void set_option(connection_t *con, conopt option, bool_t plus);
-static void make_default_con(connection_t *con, contype type);
+static connection_t *con_new(contype type);
 static size_t addr_len(connection_t *con);
 static connection_t *_nk_listen_on(const char *port, int family);
 static connection_t *_nk_connect_to(const char *, const char *, int);
@@ -57,44 +60,47 @@ set_option(connection_t *con, conopt option, bool_t plus) {
 	}
 }
 
-void 
-printLiteralChar(char c) {
+/*static void
+printLiteralChar(char *buf, char c) {
 	switch (c) {
 		case '\0':
-			printf("\\0");
+			strcat(buf, "\\0");
 			break;
 		case '\n':
-			printf("\\n");
+			strcat(buf, "\\n");
 			break;
 		case '\r':
-			printf("\\r");
+			strcat(buf, "\\r");
 			break;
 		case '\t':
-			printf("\\t");
+			strcat(buf, "\\t");
 			break;
 		default:
-			printf("%c", c);
+			sprintf(buf, "%s%c", buf, c);
 			break;
 	}    
 }
 
-void 
-printLiteral(const char *str, int len) {
+static char * 
+printLiteral(const char *str, char *buf, int len) {
 	int i;
 	for (i=0; i<len; ++i) {
-		printLiteralChar(str[i]);
+		printLiteralChar(buf, str[i]);
 	}
-}
+	return buf;
+}*/
 
-static void
-make_default_con(connection_t *con, contype type) {
-	memset(con, 0, sizeof(connection_t));
+static connection_t *
+con_new(contype type) {
+	connection_t *con = (connection_t *)calloc(1, sizeof(connection_t));
 	set_type(con, type);
 	if (type == CLIENT_TYPE)
 		set_option(con, FREE_HOSTNAME_OPT, 1);
 	if (type != INCOMING_TYPE)
 		set_option(con, FREE_PORT_OPT, 1);
 	set_option(con, FREE_IP_OPT, 1);
+	sl_init(&con->lines);
+	return con;
 }
 
 static size_t 
@@ -150,9 +156,7 @@ _nk_listen_on(const char *port, int family) {
 		return NULL;
 	}
 
-	con = (connection_t *)malloc(sizeof(connection_t));
-
-	make_default_con(con, 0);
+	con = con_new(SERVER_TYPE);
 
 	/* set if this is an ipv6 or ipv4 connection */
 	set_option(con, IPV6_OPT, (p->ai_family == AF_INET) ? 0 : 1);	
@@ -238,8 +242,7 @@ _nk_connect_to(const char *hostname, const char *port, int family) {
 		return NULL;
 	}
 
-	con = (connection_t *)malloc(sizeof(connection_t));
-	make_default_con(con, 1);
+	con = con_new(CLIENT_TYPE);
 
 	/* set if this is an ipv6 or ipv4 connection */
 	set_option(con, IPV6_OPT, (p->ai_family == AF_INET6));
@@ -284,15 +287,18 @@ nk_connect_to6(const char *hostname, const char *port) {
 	return _nk_connect_to(hostname, port, AF_INET6);
 }
 
-size_t 
+int 
 nk_send_len(connection_t *con, const char *msg, size_t len) {
 	size_t bytes_sent = 0;
 	int res;
+	#ifdef __VERBOSE__
+	fprintf(stderr, "Preparing to send %lu bytes\n", len);
+	#endif
 	while (bytes_sent < len) {
 		res = send(con->fd, msg + bytes_sent, len - bytes_sent, 0);
 		if (res >= 0) {
 			#ifdef __VERBOSE__
-			fprintf(stderr, "sent %d bytes\n", res);
+			fprintf(stderr, "sent %d bytes to file descriptor %d\n", res, con->fd);
 			#endif
 			bytes_sent += res;
 		}
@@ -304,15 +310,14 @@ nk_send_len(connection_t *con, const char *msg, size_t len) {
 	return bytes_sent;
 }
 
-size_t
+int
 nk_send(connection_t *con, const char *msg) {
 	return nk_send_len(con, msg, strlen(msg));
 }
 
-size_t 
+int 
 nk_recv(connection_t *con, char *buf, size_t len) {
-	int res;
-	size_t bytes_recvd = 0;
+	int res, bytes_recvd = 0;
 	while (1) {
 		res = recv(con->fd, buf + bytes_recvd, len - bytes_recvd, 0);
 		if (res < 0) {
@@ -320,6 +325,7 @@ nk_recv(connection_t *con, char *buf, size_t len) {
 			return res;
 		}
 		if (res == 0) {
+			printf("wtf? res is %d?\n", res);
 			#ifdef __VERBOSE__
 			printf("end of transmission\n");
 			#endif
@@ -330,42 +336,38 @@ nk_recv(connection_t *con, char *buf, size_t len) {
 	return bytes_recvd;
 }
 
-size_t 
+int 
 nk_recv_with_delim(connection_t *con, 
+						 strlist_t *prevs,
 						 char *buf, 
 						 size_t len,
 						 const char *delim) {
-	int res;
-	size_t bytes_recvd = 0, delim_len = strlen(delim), to_recv;
-	char *in_buf = (char *)malloc(delim_len + 1);
-	while (1) {
-		if (bytes_recvd >= len) break;
-		to_recv = (len - bytes_recvd < delim_len) ? len - bytes_recvd : delim_len;
-
-		res = recv(con->fd, in_buf, to_recv, 0);
-		in_buf[res] = '\0';
-
-		if (res < 0) {
-			perror("reading from socket");
-			return res;
-		}
-
-		if (res == 0) {
-			break;
-		}
-		memcpy(buf + bytes_recvd, in_buf, res);
-		bytes_recvd += res;
-		if (!strncmp(in_buf, delim, res)) {
-			break;
+	if (!con->buf) con->buf = (char *)calloc(1, MAX_BUF);
+	/* if we have something in the queue, we can copy it in and return it */
+	if (sl_size(prevs) == 0) {
+		/* otherwise, pull data from the socket until we get something */
+		int len2;
+		while (1) {
+			puts("waiting for data");
+			size_t dlen = strlen(delim);
+			len2 = nk_recv(con, con->buf + con->buf_in, dlen);
+			if (len2 <= 0) return len2; /* connection closed or error */
+			printf("received some data: '");
+			printLiteral(con->buf, len2);
+			printf("' (%d bytes)\n", len2);
+			con->buf_in += len2;
+			if (sl_split_reset(prevs, con->buf, delim, con->buf_in) > 0)
+				break;
 		}
 	}
-	free(in_buf);
-	return bytes_recvd;
+	const char *str = sl_dequeue(prevs);
+	memcpy(buf, str, (strlen(str) < len) ? strlen(str) : len);
+	return strlen(str);
 }
 
-size_t
+int
 nk_recv_crlf(connection_t *con, char *buf, size_t len) {
-	return nk_recv_with_delim(con, buf, len, "\r\n");
+	return nk_recv_with_delim(con, &con->lines, buf, len, "\r\n");
 }
 
 connection_t *
@@ -388,9 +390,7 @@ nk_accept(connection_t *server_con) {
 		fd = accept(server_con->fd, (struct sockaddr *) &saddr, &slen);
 	}
 
-	in_con = (connection_t *)malloc(sizeof(connection_t));
-	if (!in_con) return NULL;
-	make_default_con(in_con, INCOMING_TYPE);
+	in_con = con_new(INCOMING_TYPE);
 
 	/* set the incoming connection's ip version to match the server's */
 	set_option(in_con, IPV6_OPT, get_option(server_con, IPV6_OPT));
@@ -426,6 +426,7 @@ nk_close(connection_t *con) {
 	if (get_option(con, FREE_IP_OPT)) {	free(con->ip);	free(con->ip_int); }
 	if (get_option(con, FREE_PORT_OPT)) { free(con->port); }
 	close(con->fd);
+	if (con->buf) free(con->buf);
 	free(con);
 }
 
@@ -453,4 +454,5 @@ nk_print_connection(connection_t *con) {
 	fprintf(stderr, "\tIP address: %s\n", con->ip);
 	fprintf(stderr, "\tHostname: %s\n", con->hostname);
 	fprintf(stderr, "\tPort: %s\n", con->port);
+	fprintf(stderr, "\tFile descriptor: %d\n", con->fd);
 }

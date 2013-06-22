@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <string.h>
 #include <assert.h>
+#include "../include/strlist.h"
 
 #define MAX_BUF 50000
 
@@ -31,6 +32,9 @@ typedef struct connection_s {
 	char *ip;
 	void *ip_int;
 	char *port;
+	char *buf;
+	size_t buf_in;
+	strlist_t lines;
 } connection_t;
 
 /* unspecified IP version */
@@ -49,11 +53,12 @@ connection_t *nk_connect_to6(const char *hostname,
 /* accepts a connection, returns a new connection_t */
 connection_t *nk_accept(connection_t *server_con);
 
-size_t nk_send(connection_t *con, const char *msg);
-size_t nk_send_len(connection_t *con, const char *msg, size_t len);
-size_t nk_recv(connection_t *con, char *buf, size_t len);
-size_t nk_recv_crlf(connection_t *con, char *buf, size_t len);
-size_t nk_recv_with_delim(connection_t *con, 
+int nk_send(connection_t *con, const char *msg);
+int nk_send_len(connection_t *con, const char *msg, size_t len);
+int nk_recv(connection_t *con, char *buf, size_t len);
+int nk_recv_crlf(connection_t *con, char *buf, size_t len);
+int nk_recv_with_delim(connection_t *con, 
+						strlist_t *lines,
 						  char *buf, 
 						  size_t len, 
 						  const char *delim);
